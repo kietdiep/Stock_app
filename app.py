@@ -3,6 +3,7 @@ from pymongo import MongoClient
 import json
 import datetime
 from matplotlib import pyplot as plt
+import sys
 
 
 #Step 1: Create a db class that will connect to mongo db and contain the functions
@@ -40,11 +41,22 @@ class stock_db():
             tempList.append(stock_dict[key])
         self.value_nested_list.append(tempList)
     
-    def date_to_list(self,stock_dict):
+    def date_to_list(self,stock_dict, interval_t):
         for key in stock_dict:
             date = self.dt64_to_date(int(key))
-            #depending on interval change will need to adjust this based on usage
-            date = date.year + (date.month / 12) + (date.day / 365)
+            #valid intervals: 1d,5d,1wk,1mo,3mo
+            if interval_t == "1d":
+                date = date.year + (date.month / 12) + (date.day / 365)
+            elif interval_t == "5d":
+                date = date.year + (date.month / 12) + (date.day / 73)
+            elif interval_t == "1w":
+                date = date.year + (date.month / 12) + (date.day / (365/7))
+            elif interval_t == "1mo":
+                date = date.year + (date.month / 12)
+            elif interval_t == "3mo":
+                date = date.year + (date.month / 3)
+            else: 
+                sys.exit("Invalid interval")
             self.date_list.append(date)
 
     def show_plot(self,ticker):
@@ -58,7 +70,7 @@ class stock_db():
         
         
 if __name__ == "__main__":
-    s_db = stock_db()
+    
     
     #Step 2: Get the ticker input and do a call to get the data on that stock
     #Step 3: Store the data into MongoDB for later retrieval 
@@ -74,32 +86,34 @@ if __name__ == "__main__":
     #         ticker_json = ticker_obj.history(period="10y",interval="1d").dropna().to_json()
     #         s_db.insert_one(ticker_json,ticker)
     # -------------------------------------------------------------------------------------------------------------
-    ticker = input("Enter desired ticker to begin: ")
-    ticker_obj = yf.Ticker(ticker)
-    ticker_json = ticker_obj.history(period="10y",interval="1d").dropna().to_json()
-    s_db.insert_one(ticker_json,ticker)
+    loop_b = True
+    while loop_b:  
+        s_db = stock_db()
+        ticker = input("Enter desired ticker to begin: ")
+        state = input("Open, Close, High, or Low?: ")
+        period_t = input("Enter period (valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max): ")
+        interval_t = input("Enter interval (valid intervals: 1d,5d,1wk,1mo,3mo): ")
+        ticker_obj = yf.Ticker(ticker)
+        ticker_json = ticker_obj.history(period=period_t,interval=interval_t).dropna().to_json()
+        s_db.insert_one(ticker_json,ticker)
 
-    #Step 4 use the ticker_id dictionary to get data that we wish to see
-    #4.5 with id_dict, use keys to index values and values to push into obj_id
-    if ticker != "quit":    
+        #Step 4 use the ticker_id dictionary to get data that we wish to see
+        #4.5 with id_dict, use keys to index values and values to push into obj_id
+        
         for key in s_db.id_dict:
             obj_id = s_db.id_dict[key]
-            stock_dict = s_db.myCollection.find_one({"_id": obj_id})['Open'] #returns a dictionary with nested dictionaries
+            stock_dict = s_db.myCollection.find_one({"_id": obj_id})[state.capitalize()] #returns a dictionary with nested dictionaries
             s_db.vdict_to_list(stock_dict) 
 
             if s_db.date_list:
                 break
             else:
-                s_db.date_to_list(stock_dict)
+                s_db.date_to_list(stock_dict, interval_t)
             
         s_db.show_plot(ticker)
         del_col = s_db.myCollection.delete_many({})
+        redo = input("Do you wish to see another stock?(y/n): ")
+        if redo.lower() == 'n':
+            loop_b = False
     print("Have a nice day")
     
-
-
-
-    #Steps to be done:
-    # - Input to choose from open, close, high, low
-    # - Input period
-    # - Input interval
