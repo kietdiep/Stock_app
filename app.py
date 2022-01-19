@@ -4,6 +4,7 @@ import json
 import datetime
 from matplotlib import pyplot as plt
 import sys
+import os
 
 
 #Step 1: Create a db class that will connect to mongo db and contain the functions
@@ -13,9 +14,11 @@ class stock_db():
         self.id_dict = {}
         self.date_list = []
         self.value_nested_list = [] #reason nested list is in case of future implementation where i show more than one stock graphs
+        mongo_user = os.environ.get('mongo_user')
+        mongo_pass = os.environ.get('mongo_pass')
 
         try:
-            client = MongoClient("mongodb+srv://kietddiep:yuzumelon221@kcluster.9670b.mongodb.net/stock_info?retryWrites=true&w=majority")
+            client = MongoClient(f"mongodb+srv://{mongo_user}:{mongo_pass}@kcluster.9670b.mongodb.net/stock_info?retryWrites=true&w=majority")
         except Exception:
             print("Error:" + Exception)
 
