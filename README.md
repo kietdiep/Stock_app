@@ -4,5 +4,5 @@ This is a stock app built using the yFinance API and matplotlib to visualize sto
 
 ## To run
 
-pip install -r requirements.txt \\
+pip install -r requirements.txt \n
 python app.py
